@@ -46,6 +46,16 @@ ui <- page_sidebar(
                    class = "btn-success w-100")
   ),
 
+  # Custom CSS for single-line rows
+  tags$head(tags$style(HTML(
+    "table.dataTable tbody td {
+       white-space: nowrap;
+       overflow: hidden;
+       text-overflow: ellipsis;
+       max-width: 300px;
+     }"
+  ))),
+
   layout_columns(
     col_widths = 12,
 
@@ -58,7 +68,17 @@ ui <- page_sidebar(
     ),
 
     card(
-      card_header("Conversion Summary"),
+      card_header(
+        class = "d-flex justify-content-between align-items-center",
+        "Conversion Summary",
+        div(
+          actionButton("toggle_cols", "Show coord columns only",
+                       class = "btn-outline-secondary btn-sm me-2"),
+          actionButton("filter_failed", "Show failed rows",
+                       class = "btn-outline-danger btn-sm",
+                       style = "display:none;")
+        )
+      ),
       card_body(
         uiOutput("conversion_summary")
       )
@@ -76,6 +96,10 @@ ui <- page_sidebar(
 
 # -- Server --------------------------------------------------------------------
 server <- function(input, output, session) {
+
+  # Track toggle states
+  show_coord_only <- reactiveVal(FALSE)
+  show_failed_only <- reactiveVal(FALSE)
 
   # Reactive: uploaded data
   uploaded_data <- reactive({
@@ -130,7 +154,31 @@ server <- function(input, output, session) {
     df$Latitude_DD  <- parse_coordinates(lat_raw)
     df$Longitude_DD <- parse_coordinates(lon_raw)
 
+    # Reset toggles on new conversion
+    show_coord_only(FALSE)
+    show_failed_only(FALSE)
+    updateActionButton(session, "toggle_cols", label = "Show coord columns only")
+    updateActionButton(session, "filter_failed", label = "Show failed rows")
+
     df
+  })
+
+  # Toggle: coord columns only
+  observeEvent(input$toggle_cols, {
+    req(converted_data())
+    current <- show_coord_only()
+    show_coord_only(!current)
+    updateActionButton(session, "toggle_cols",
+                       label = if (!current) "Show all columns" else "Show coord columns only")
+  })
+
+  # Toggle: failed rows only
+  observeEvent(input$filter_failed, {
+    req(converted_data())
+    current <- show_failed_only()
+    show_failed_only(!current)
+    updateActionButton(session, "filter_failed",
+                       label = if (!current) "Show all rows" else "Show failed rows")
   })
 
   # Conversion summary
@@ -143,35 +191,60 @@ server <- function(input, output, session) {
     n_lon_ok   <- sum(!is.na(df$Longitude_DD))
     n_lat_fail <- n_total - n_lat_ok
     n_lon_fail <- n_total - n_lon_ok
+    has_failures <- n_lat_fail > 0 || n_lon_fail > 0
+
+    # Show/hide the filter button based on whether there are failures
+    if (has_failures) {
+      shinyjs_show <- "$('#filter_failed').show();"
+    } else {
+      shinyjs_show <- "$('#filter_failed').hide();"
+    }
 
     tagList(
+      tags$script(HTML(shinyjs_show)),
       tags$p(tags$strong("Total rows: "), n_total),
-      tags$p(tags$strong("Latitude parsed: "),
-             n_lat_ok, " success, ",
-             tags$span(style = if (n_lat_fail > 0) "color:red;" else "",
-                       n_lat_fail, " failed")),
-      tags$p(tags$strong("Longitude parsed: "),
-             n_lon_ok, " success, ",
-             tags$span(style = if (n_lon_fail > 0) "color:red;" else "",
-                       n_lon_fail, " failed")),
-      if (n_lat_fail > 0 || n_lon_fail > 0)
-        tags$p(tags$em("Rows that could not be parsed will have NA in the _DD columns."),
+      tags$p(tags$strong("Latitude: "),
+             tags$span(style = "color:green;", n_lat_ok, " parsed"),
+             if (n_lat_fail > 0) tagList(", ", tags$span(style = "color:red;", n_lat_fail, " failed"))),
+      tags$p(tags$strong("Longitude: "),
+             tags$span(style = "color:green;", n_lon_ok, " parsed"),
+             if (n_lon_fail > 0) tagList(", ", tags$span(style = "color:red;", n_lon_fail, " failed"))),
+      if (has_failures)
+        tags$p(tags$em("Use the \"Show failed rows\" button above to inspect failures."),
                style = "color: #856404;")
     )
   })
 
-  # Converted data preview
+  # Converted data preview (responds to both toggles)
   output$result_preview <- renderDT({
     df <- converted_data()
     req(df)
-    datatable(df,
-              options = list(pageLength = 10, scrollX = TRUE),
-              rownames = FALSE) |>
-      formatStyle(c("Latitude_DD", "Longitude_DD"),
-                  backgroundColor = "#d4edda")
+
+    # Filter to failed rows if toggled
+    if (show_failed_only()) {
+      df <- df[is.na(df$Latitude_DD) | is.na(df$Longitude_DD), , drop = FALSE]
+    }
+
+    # Select columns if toggled
+    if (show_coord_only()) {
+      coord_cols <- c(input$lat_col, input$lon_col, "Latitude_DD", "Longitude_DD")
+      coord_cols <- coord_cols[coord_cols %in% names(df)]
+      df <- df[, coord_cols, drop = FALSE]
+    }
+
+    dt <- datatable(df,
+                    options = list(pageLength = 10, scrollX = TRUE),
+                    rownames = FALSE)
+
+    # Highlight the DD columns if they're visible
+    if ("Latitude_DD" %in% names(df) && "Longitude_DD" %in% names(df)) {
+      dt <- dt |> formatStyle(c("Latitude_DD", "Longitude_DD"),
+                              backgroundColor = "#d4edda")
+    }
+    dt
   })
 
-  # Download handler
+  # Download handler (always downloads full data, all columns)
   output$download_btn <- downloadHandler(
     filename = function() {
       original_name <- tools::file_path_sans_ext(input$file_upload$name)

@@ -102,3 +102,15 @@ test_that("Negative sign with hemisphere does not double-negate", {
   # -33.865 is already negative; no hemisphere letter
   expect_equal(parse_coordinate("-33.865"), -33.865)
 })
+
+test_that("Decimal seconds handled", {
+  expect_equal(parse_coordinate("43 20' 35.2\""), 43.34311, tolerance = 0.001)
+  expect_equal(parse_coordinate("43\u00B020'35.2\"S"), -43.34311, tolerance = 0.001)
+  expect_equal(parse_coordinate("43 20 35.2 S"), -43.34311, tolerance = 0.001)
+})
+
+test_that("Degrees and minutes only (no seconds)", {
+  expect_equal(parse_coordinate("29o 26'"), 29.43333, tolerance = 0.001)
+  expect_equal(parse_coordinate("29o26'S"), -29.43333, tolerance = 0.001)
+  expect_equal(parse_coordinate("29 26 S"), -29.43333, tolerance = 0.001)
+})
