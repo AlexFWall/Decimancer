@@ -1,0 +1,8 @@
+Site,Latitude,Longitude,Description
+A,"33°51'54""S","151°12'36""E",DMS with symbols
+B,33 51 54 S,151 12 36 E,DMS space-separated
+C,-33.865,151.21,Decimal degrees
+D,33°51.9'S,151°12.6'E,DDM with symbols
+E,33 51.9 S,151 12.6 E,DDM space-separated
+F,S 33 51 54,E 151 12 36,Hemisphere prefix
+G,not valid,also bad,Should produce NA
