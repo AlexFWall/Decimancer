@@ -72,7 +72,7 @@ ui <- page_sidebar(
         class = "d-flex justify-content-between align-items-center",
         "Conversion Summary",
         div(
-          actionButton("toggle_cols", "Show coord columns only",
+          actionButton("toggle_cols", "Show all columns",
                        class = "btn-outline-secondary btn-sm me-2"),
           actionButton("filter_failed", "Show failed rows",
                        class = "btn-outline-danger btn-sm",
@@ -97,8 +97,8 @@ ui <- page_sidebar(
 # -- Server --------------------------------------------------------------------
 server <- function(input, output, session) {
 
-  # Track toggle states
-  show_coord_only <- reactiveVal(FALSE)
+  # Track toggle states — coord-only view is the default
+  show_coord_only <- reactiveVal(TRUE)
   show_failed_only <- reactiveVal(FALSE)
 
   # Reactive: uploaded data
@@ -154,10 +154,10 @@ server <- function(input, output, session) {
     df$Latitude_DD  <- parse_coordinates(lat_raw)
     df$Longitude_DD <- parse_coordinates(lon_raw)
 
-    # Reset toggles on new conversion
-    show_coord_only(FALSE)
+    # Reset toggles on new conversion (coord-only is the default)
+    show_coord_only(TRUE)
     show_failed_only(FALSE)
-    updateActionButton(session, "toggle_cols", label = "Show coord columns only")
+    updateActionButton(session, "toggle_cols", label = "Show all columns")
     updateActionButton(session, "filter_failed", label = "Show failed rows")
 
     df
@@ -232,9 +232,14 @@ server <- function(input, output, session) {
       df <- df[, coord_cols, drop = FALSE]
     }
 
+    # Replace NA with "NA" string so empty cells are visible in the table
+    df[] <- lapply(df, function(col) {
+      col[is.na(col)] <- "NA"
+      col
+    })
+
     dt <- datatable(df,
-                    options = list(pageLength = 10, scrollX = TRUE,
-                                   na = "NA"),
+                    options = list(pageLength = 10, scrollX = TRUE),
                     rownames = FALSE)
 
     # Highlight the DD columns if they're visible
