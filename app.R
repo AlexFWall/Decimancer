@@ -9,7 +9,7 @@ source("R/column_detector.R")
 
 # -- UI -----------------------------------------------------------------------
 ui <- page_sidebar(
-  title = "Decimancer",
+  title = "Decimancer: convert coordinates to decimal degrees",
   theme = bs_theme(
     version = 5,
     bootswatch = "flatly",
