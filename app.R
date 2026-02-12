@@ -233,7 +233,8 @@ server <- function(input, output, session) {
     }
 
     dt <- datatable(df,
-                    options = list(pageLength = 10, scrollX = TRUE),
+                    options = list(pageLength = 10, scrollX = TRUE,
+                                   na = "NA"),
                     rownames = FALSE)
 
     # Highlight the DD columns if they're visible
