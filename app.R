@@ -9,7 +9,21 @@ source("R/column_detector.R")
 
 # -- UI -----------------------------------------------------------------------
 ui <- page_sidebar(
-  title = "Decimancer — convert coordinates to decimal degrees",
+  title = tags$div(
+    style = "display:flex; align-items:center; justify-content:space-between; width:100%;",
+    tags$div(
+      tags$span("Decimancer",
+                style = "font-family:'Rosarivo',serif; font-size:1.4em;"),
+      tags$br(),
+      tags$span("convert coordinates to decimal degrees",
+                style = "font-size:0.75em; opacity:0.85;")
+    ),
+    tags$a(href = "https://alexfwall.github.io/Palaeomancer/",
+           target = "_blank",
+           class = "btn btn-success btn-sm",
+           style = "white-space:nowrap;",
+           "Palaeomancer")
+  ),
   theme = bs_theme(
     version = 5,
     bootswatch = "flatly",
@@ -43,26 +57,25 @@ ui <- page_sidebar(
                  choices = c("CSV" = "csv", "Excel" = "xlsx"),
                  selected = "csv", inline = TRUE),
     downloadButton("download_btn", "Download Converted File",
-                   class = "btn-success w-100"),
-
-    hr(),
-    tags$p(
-      tags$a(href = "https://alexfwall.github.io/Palaeomancer/",
-             target = "_blank",
-             "\u2190 Back to Palaeomancer"),
-      class = "text-muted small"
-    )
+                   class = "btn-success w-100")
   ),
 
-  # Custom CSS for single-line rows
-  tags$head(tags$style(HTML(
-    "table.dataTable tbody td {
-       white-space: nowrap;
-       overflow: hidden;
-       text-overflow: ellipsis;
-       max-width: 300px;
-     }"
-  ))),
+  # Google Fonts + custom CSS
+  tags$head(
+    tags$link(rel = "preconnect", href = "https://fonts.googleapis.com"),
+    tags$link(rel = "preconnect", href = "https://fonts.gstatic.com", crossorigin = NA),
+    tags$link(href = "https://fonts.googleapis.com/css2?family=Rosarivo:ital@0;1&display=swap",
+              rel = "stylesheet"),
+    tags$style(HTML(
+      ".navbar-brand { flex-grow: 1; margin-right: 0 !important; }
+       table.dataTable tbody td {
+         white-space: nowrap;
+         overflow: hidden;
+         text-overflow: ellipsis;
+         max-width: 300px;
+       }"
+    ))
+  ),
 
   layout_columns(
     col_widths = 12,
