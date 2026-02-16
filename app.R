@@ -9,7 +9,7 @@ source("R/column_detector.R")
 
 # -- UI -----------------------------------------------------------------------
 ui <- page_sidebar(
-  title = "Decimancer: convert coordinates to decimal degrees",
+  title = "Decimancer — convert coordinates to decimal degrees",
   theme = bs_theme(
     version = 5,
     bootswatch = "flatly",
@@ -43,7 +43,15 @@ ui <- page_sidebar(
                  choices = c("CSV" = "csv", "Excel" = "xlsx"),
                  selected = "csv", inline = TRUE),
     downloadButton("download_btn", "Download Converted File",
-                   class = "btn-success w-100")
+                   class = "btn-success w-100"),
+
+    hr(),
+    tags$p(
+      tags$a(href = "https://alexfwall.github.io/Palaeomancer/",
+             target = "_blank",
+             "\u2190 Back to Palaeomancer"),
+      class = "text-muted small"
+    )
   ),
 
   # Custom CSS for single-line rows
