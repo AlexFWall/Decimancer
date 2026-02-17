@@ -13,15 +13,15 @@ ui <- page_sidebar(
     style = "display:flex; align-items:center; justify-content:space-between; width:100%;",
     tags$div(
       tags$span("Decimancer",
-                style = "font-family:'Rosarivo',serif; font-size:1.4em;"),
+                style = "font-family:'Rosarivo',serif; font-size:2.1em;"),
       tags$br(),
-      tags$span("convert coordinates to decimal degrees",
+      tags$span("Convert any geographic coordinates to decimal degrees.",
                 style = "font-size:0.75em; opacity:0.85;")
     ),
     tags$a(href = "https://alexfwall.github.io/Palaeomancer/",
            target = "_blank",
-           class = "btn btn-success btn-sm",
-           style = "white-space:nowrap;",
+           class = "btn btn-sm",
+           style = "white-space:nowrap; background-color:#58B62C; color:white; border:none;",
            "Palaeomancer")
   ),
   theme = bs_theme(
@@ -31,10 +31,13 @@ ui <- page_sidebar(
   ),
 
   sidebar = sidebar(
-    title = "Settings",
+    title = NULL,
     width = 320,
 
     h4("1. Upload File"),
+    p("Decimancer will append standardised decimal degree values in two new columns.",
+      "Header row required. Mixed formats permitted.",
+      class = "text-muted small"),
     fileInput("file_upload",
               label = NULL,
               accept = c(".csv", ".xlsx", ".xls"),
@@ -57,7 +60,8 @@ ui <- page_sidebar(
                  choices = c("CSV" = "csv", "Excel" = "xlsx"),
                  selected = "csv", inline = TRUE),
     downloadButton("download_btn", "Download Converted File",
-                   class = "btn-success w-100")
+                   class = "btn w-100",
+                   style = "background-color:#58B62C; color:white; border:none;")
   ),
 
   # Google Fonts + custom CSS
