@@ -298,7 +298,12 @@ parse_coord_line <- function(line) {
   # --- Step 2: try the whole line as a single coordinate ---
   single <- parse_coordinate(line)
   if (!is.na(single)) {
-    return(make_result(single, NA_real_))
+    if (single >= -90 && single <= 90) {
+      return(make_result(single, NA_real_))
+    } else {
+      # Outside [-90,90] but within [-180,180] — must be a longitude
+      return(make_result(NA_real_, single))
+    }
   }
 
   # --- Step 3: even-chunk split on numeric tokens ---
