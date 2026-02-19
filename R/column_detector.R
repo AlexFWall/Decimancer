@@ -19,11 +19,12 @@ detect_coord_columns <- function(df) {
 
   lat_patterns <- c(
     "^lat$", "^latitude$", "^lat_dd$", "^decimallatitude$",
-    "^y$", "^lat[_.]", "latitude"
+    "^y$", "^lat[_.]", "latitude", "lat"
   )
   lon_patterns <- c(
     "^lon$", "^lng$", "^long$", "^longitude$", "^lon_dd$",
-    "^decimallongitude$", "^x$", "^lon[_.]", "^long[_.]", "longitude"
+    "^decimallongitude$", "^x$", "^lon[_.]", "^long[_.]",
+    "longitude", "long", "lng"
   )
 
   list(

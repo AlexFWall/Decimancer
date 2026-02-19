@@ -227,3 +227,114 @@ parse_coordinate <- function(x) {
 parse_coordinates <- function(x) {
   vapply(x, parse_coordinate, numeric(1), USE.NAMES = FALSE)
 }
+
+#' Set out-of-range latitudes to NA.
+validate_latitudes <- function(x) {
+  ifelse(!is.na(x) & (x < -90 | x > 90), NA_real_, x)
+}
+
+#' Set out-of-range longitudes to NA.
+validate_longitudes <- function(x) {
+  ifelse(!is.na(x) & (x < -180 | x > 180), NA_real_, x)
+}
+
+#' Parse a single line of free text into a latitude and longitude.
+#'
+#' Strategy:
+#'   1. Try splitting on delimiters (comma, tab, semicolon, slash)
+#'   2. If no delimiter split yields two valid coordinates, try parsing the
+#'      whole line as a single coordinate
+#'   3. If that also fails, extract all numeric tokens and — if even in count —
+#'      split them in half, reconstruct two coordinate strings (with any
+#'      hemisphere letters distributed), and try parsing each half
+#'
+#' Returns a named list: list(input, lat, lon)
+parse_coord_line <- function(line) {
+  line <- trimws(line)
+  if (nchar(line) == 0) return(list(input = line, lat = NA_real_, lon = NA_real_))
+
+  # Helper: validate and return a lat/lon result
+  make_result <- function(lat, lon) {
+    list(input = line,
+         lat = validate_latitudes(lat),
+         lon = validate_longitudes(lon))
+  }
+
+  # --- Step 1: delimiter split ---
+  for (delim in c(",", "\t", ";", "/")) {
+    if (grepl(delim, line, fixed = TRUE)) {
+      parts <- trimws(strsplit(line, delim, fixed = TRUE)[[1]])
+      if (length(parts) == 2) {
+        v1 <- parse_coordinate(parts[1])
+        v2 <- parse_coordinate(parts[2])
+        if (!is.na(v1) || !is.na(v2)) {
+          return(make_result(v1, v2))
+        }
+      }
+    }
+  }
+
+  # --- Step 1.5: two hemisphere letters → split on the boundary ---
+  hemi_locs <- gregexpr("[NSEWnsew]", line, perl = TRUE)[[1]]
+  if (length(hemi_locs) == 2 && all(hemi_locs > 0)) {
+    # Try A: split after first hemisphere letter
+    p1 <- trimws(substr(line, 1, hemi_locs[1]))
+    p2 <- trimws(substr(line, hemi_locs[1] + 1, nchar(line)))
+    v1 <- parse_coordinate(p1)
+    v2 <- parse_coordinate(p2)
+    if (!is.na(v1) && !is.na(v2)) {
+      return(make_result(v1, v2))
+    }
+
+    # Try B: split before second hemisphere letter
+    p1 <- trimws(substr(line, 1, hemi_locs[2] - 1))
+    p2 <- trimws(substr(line, hemi_locs[2], nchar(line)))
+    v1 <- parse_coordinate(p1)
+    v2 <- parse_coordinate(p2)
+    if (!is.na(v1) && !is.na(v2)) {
+      return(make_result(v1, v2))
+    }
+  }
+
+  # --- Step 2: try the whole line as a single coordinate ---
+  single <- parse_coordinate(line)
+  if (!is.na(single)) {
+    return(list(input = line, lat = single, lon = NA_real_))
+  }
+
+  # --- Step 3: even-chunk split on numeric tokens ---
+  # Extract hemisphere letters and numeric tokens
+  hemi_all <- regmatches(line, gregexpr("[NSEWnsew]", line, perl = TRUE))[[1]]
+  hemi_all <- toupper(hemi_all)
+
+  nums <- regmatches(line, gregexpr("\\d+\\.?\\d*", line, perl = TRUE))[[1]]
+
+  if (length(nums) >= 2 && length(nums) %% 2 == 0) {
+    mid <- length(nums) / 2
+    first_nums  <- nums[1:mid]
+    second_nums <- nums[(mid + 1):length(nums)]
+
+    # Distribute hemisphere letters (first ↔ first coord, second ↔ second)
+    first_hemi  <- ""
+    second_hemi <- ""
+    if (length(hemi_all) >= 2) {
+      first_hemi  <- paste0(" ", hemi_all[1])
+      second_hemi <- paste0(" ", hemi_all[2])
+    } else if (length(hemi_all) == 1) {
+      first_hemi <- paste0(" ", hemi_all[1])
+    }
+
+    first_str  <- paste0(paste(first_nums, collapse = " "), first_hemi)
+    second_str <- paste0(paste(second_nums, collapse = " "), second_hemi)
+
+    v1 <- parse_coordinate(first_str)
+    v2 <- parse_coordinate(second_str)
+
+    if (!is.na(v1) || !is.na(v2)) {
+      return(make_result(v1, v2))
+    }
+  }
+
+  # Nothing worked
+  list(input = line, lat = NA_real_, lon = NA_real_)
+}

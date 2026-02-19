@@ -114,3 +114,74 @@ test_that("Degrees and minutes only (no seconds)", {
   expect_equal(parse_coordinate("29o26'S"), -29.43333, tolerance = 0.001)
   expect_equal(parse_coordinate("29 26 S"), -29.43333, tolerance = 0.001)
 })
+
+# --- Line parser tests ---
+
+test_that("parse_coord_line splits on comma", {
+  res <- parse_coord_line("33 51 54 S, 151 12 36 E")
+  expect_equal(res$lat, -33.865, tolerance = 0.001)
+  expect_equal(res$lon, 151.21, tolerance = 0.001)
+})
+
+test_that("parse_coord_line splits on semicolon", {
+  res <- parse_coord_line("33 51 54 S; 151 12 36 E")
+  expect_equal(res$lat, -33.865, tolerance = 0.001)
+  expect_equal(res$lon, 151.21, tolerance = 0.001)
+})
+
+test_that("parse_coord_line splits on slash", {
+  res <- parse_coord_line("33.865S / 151.21E")
+  expect_equal(res$lat, -33.865, tolerance = 0.001)
+  expect_equal(res$lon, 151.21, tolerance = 0.001)
+})
+
+test_that("parse_coord_line handles single coordinate", {
+  res <- parse_coord_line("33 51 54 S")
+  expect_equal(res$lat, -33.865, tolerance = 0.001)
+  expect_true(is.na(res$lon))
+})
+
+test_that("parse_coord_line even-chunk split when single parse fails", {
+  # "11 145" → DDM with 145 min (>=60) fails → split into 11 and 145
+  res <- parse_coord_line("11 145")
+  expect_equal(res$lat, 11)
+  expect_equal(res$lon, 145)
+})
+
+test_that("parse_coord_line even-chunk split with 4 tokens", {
+  # "11 24 145 16" → 4 tokens, no single parse → split [11,24] [145,16]
+  res <- parse_coord_line("11 24 145 16")
+  expect_equal(res$lat, 11.4, tolerance = 0.001)
+  expect_equal(res$lon, 145.267, tolerance = 0.001)
+})
+
+test_that("parse_coord_line even-chunk split with 6 tokens and hemispheres", {
+  res <- parse_coord_line("33 51 54 S 151 12 36 E")
+  expect_equal(res$lat, -33.865, tolerance = 0.001)
+  expect_equal(res$lon, 151.21, tolerance = 0.001)
+})
+
+test_that("parse_coord_line empty input returns NAs", {
+  res <- parse_coord_line("")
+  expect_true(is.na(res$lat))
+  expect_true(is.na(res$lon))
+})
+
+# --- Range validation tests ---
+
+test_that("validate_latitudes rejects out-of-range values", {
+  expect_equal(validate_latitudes(c(-33.865, 133, -91, 90, 0)),
+               c(-33.865, NA, NA, 90, 0))
+})
+
+test_that("validate_longitudes rejects out-of-range values", {
+  expect_equal(validate_longitudes(c(151.21, 180, -180, 181, -200)),
+               c(151.21, 180, -180, NA, NA))
+})
+
+test_that("parse_coord_line fails latitude > 90 in quick convert", {
+  # Swapped lat/lon: 133 can't be a latitude
+  res <- parse_coord_line("133.379, -16.252")
+  expect_true(is.na(res$lat))
+  expect_equal(res$lon, -16.252)
+})
