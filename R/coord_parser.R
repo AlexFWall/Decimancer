@@ -298,7 +298,7 @@ parse_coord_line <- function(line) {
   # --- Step 2: try the whole line as a single coordinate ---
   single <- parse_coordinate(line)
   if (!is.na(single)) {
-    return(list(input = line, lat = single, lon = NA_real_))
+    return(make_result(single, NA_real_))
   }
 
   # --- Step 3: even-chunk split on numeric tokens ---
