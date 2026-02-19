@@ -179,6 +179,16 @@ test_that("validate_longitudes rejects out-of-range values", {
                c(151.21, 180, -180, NA, NA))
 })
 
+test_that("parse_coordinate rejects values outside [-180, 180]", {
+  expect_true(is.na(parse_coordinate("9999999999")))
+  expect_true(is.na(parse_coordinate("181")))
+  expect_true(is.na(parse_coordinate("-200")))
+  expect_true(is.na(parse_coordinate(999)))
+  # Boundary values are accepted
+  expect_equal(parse_coordinate("180"), 180)
+  expect_equal(parse_coordinate("-180"), -180)
+})
+
 test_that("parse_coord_line fails latitude > 90 in quick convert", {
   # Swapped lat/lon: 133 can't be a latitude
   res <- parse_coord_line("133.379, -16.252")

@@ -191,36 +191,35 @@ parse_universal <- function(x) {
 parse_coordinate <- function(x) {
   if (is.na(x) || is.null(x)) return(NA_real_)
 
-  # Already numeric — pass through
-  if (is.numeric(x)) return(as.numeric(x))
+  dd <- NA_real_
 
-  x_str <- trimws(as.character(x))
-  if (x_str == "" || toupper(x_str) == "NA") return(NA_real_)
+  if (is.numeric(x)) {
+    dd <- as.numeric(x)
+  } else {
+    x_str <- trimws(as.character(x))
+    if (x_str == "" || toupper(x_str) == "NA") return(NA_real_)
 
-  # Plain numeric string (decimal degrees like -33.865 or 151.21)
-  numeric_val <- suppressWarnings(as.numeric(x_str))
-  if (!is.na(numeric_val)) return(numeric_val)
+    # Plain numeric string (decimal degrees like -33.865 or 151.21)
+    dd <- suppressWarnings(as.numeric(x_str))
 
-  # Try the universal parser (separator-agnostic)
-  result <- parse_universal(x_str)
-  if (!is.na(result)) return(result)
+    # Try the universal parser (separator-agnostic)
+    if (is.na(dd)) dd <- parse_universal(x_str)
 
-  # Fall back to legacy regex parsers for anything universal missed
-  x_clean <- normalize_coord_string(x_str)
+    # Fall back to legacy regex parsers for anything universal missed
+    if (is.na(dd)) {
+      x_clean <- normalize_coord_string(x_str)
+      for (parser in list(parse_dms_symbols, parse_ddm_symbols,
+                          parse_dms_spaces, parse_ddm_spaces)) {
+        dd <- parser(x_clean)
+        if (!is.na(dd)) break
+      }
+    }
+  }
 
-  result <- parse_dms_symbols(x_clean)
-  if (!is.na(result)) return(result)
+  # No coordinate can exceed [-180, 180]
+  if (!is.na(dd) && (dd < -180 || dd > 180)) return(NA_real_)
 
-  result <- parse_ddm_symbols(x_clean)
-  if (!is.na(result)) return(result)
-
-  result <- parse_dms_spaces(x_clean)
-  if (!is.na(result)) return(result)
-
-  result <- parse_ddm_spaces(x_clean)
-  if (!is.na(result)) return(result)
-
-  NA_real_
+  dd
 }
 
 #' Parse a vector of coordinate strings into decimal degrees.
